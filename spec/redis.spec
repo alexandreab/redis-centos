@@ -3,15 +3,12 @@
 
 Summary: redis
 Name: redis
-Version: 2.0.0
-Release: rc2
+Version: 2.8.17
+Release: 1
 License: BSD
 Group: Applications/Multimedia
-URL: http://code.google.com/p/redis/
-
-Source0: redis-%{version}-%{release}.tar.gz
-Source1: redis.conf
-
+URL: http://redis.io/
+Source0: redis-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: gcc, make
 Requires(post): /sbin/chkconfig /usr/sbin/useradd
@@ -19,7 +16,7 @@ Requires(preun): /sbin/chkconfig, /sbin/service
 Requires(postun): /sbin/service
 Provides: redis
 
-Packager: Jason Priebe <jpriebe@cbcnewmedia.com>
+Packager: Alexandre Barbosa <alexandrealmeidabarbosa@gmail.com>
 
 %description
 Redis is a key-value database. It is similar to memcached but the dataset is
@@ -140,13 +137,13 @@ EOF
 %install
 %{__rm} -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
-%{__install} -Dp -m 0755 redis-server %{buildroot}%{_sbindir}/redis-server
-%{__install} -Dp -m 0755 redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
-%{__install} -Dp -m 0755 redis-cli %{buildroot}%{_bindir}/redis-cli
+%{__install} -Dp -m 0755 src/redis-server %{buildroot}%{_sbindir}/redis-server
+%{__install} -Dp -m 0755 src/redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
+%{__install} -Dp -m 0755 src/redis-cli %{buildroot}%{_bindir}/redis-cli
 
 %{__install} -Dp -m 0755 redis.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/redis
 %{__install} -Dp -m 0755 redis.sysv %{buildroot}%{_sysconfdir}/init.d/redis
-%{__install} -Dp -m 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/redis.conf
+%{__install} -Dp -m 0644 redis.conf %{buildroot}%{_sysconfdir}/redis.conf
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
 %{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
@@ -172,6 +169,7 @@ if [ $1 = 0 ]; then
 fi
 
 %post
+sed -i 's/^daemonize no/daemonize yes/' %{_sysconfdir}/redis.conf
 /sbin/chkconfig --add redis
 
 %clean
@@ -179,7 +177,7 @@ fi
 
 %files
 %defattr(-, root, root, 0755)
-%doc doc/*.html
+%doc deps/lua/doc/*.html
 %{_sbindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
@@ -191,6 +189,11 @@ fi
 %dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
 
 %changelog
+* Mon Nov 10 2014 - update for redis-2.8.17
+- update preamble
+- change redis-server, redis-benchmark and redis-cli location
+- enable daemonize in redis.conf
+
 * Tue Jul 13 2010 - jay at causes dot com 2.0.0-rc2
 - upped to 2.0.0-rc2
 
