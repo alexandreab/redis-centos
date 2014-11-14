@@ -15,6 +15,9 @@ Requires(post): /sbin/chkconfig /usr/sbin/useradd
 Requires(preun): /sbin/chkconfig, /sbin/service
 Requires(postun): /sbin/service
 Provides: redis
+%if 0%{?suse_version} >= 1210
+BuildRequires: systemd
+%endif 
 
 Packager: Alexandre Barbosa <alexandrealmeidabarbosa@gmail.com>
 
@@ -44,90 +47,18 @@ and so on. Redis is free software released under the very liberal BSD license.
 }
 EOF
 
-%{__cat} <<'EOF' >redis.sysv
-#!/bin/bash
-#
-# Init file for redis
-#
-# Written by Jason Priebe <jpriebe@cbcnewmedia.com>
-#
-# chkconfig: - 80 12
-# description: A persistent key-value database with network interface
-# processname: redis-server
-# config: /etc/redis.conf
-# pidfile: %{pidfile}
+%{__cat} <<'EOF' >redis.service
+[Unit]
+Description=Redis
 
-source %{_sysconfdir}/init.d/functions
+[Service]
+User=redis
+ExecStart=/usr/sbin/redis-server
+KillMode=process
+Restart=on-failure
 
-RETVAL=0
-prog="redis-server"
-
-start() {
-  echo -n $"Starting $prog: "
-  daemon --user redis --pidfile %{pid_file} %{_sbindir}/$prog /etc/redis.conf
-  RETVAL=$?
-  echo
-  [ $RETVAL -eq 0 ] && touch %{_localstatedir}/lock/subsys/$prog
-  return $RETVAL
-}
-
-stop() {
-    PID=`cat %{pid_file} 2>/dev/null`
-    if [ -n "$PID" ]; then
-        echo "Shutdown may take a while; redis needs to save the entire database";
-        echo -n $"Shutting down $prog: "
-        /usr/bin/redis-cli shutdown
-        if checkpid $PID 2>&1; then
-            echo_failure
-            RETVAL=1
-        else
-            rm -f /var/lib/redis/temp*rdb
-            rm -f /var/lock/subsys/$prog
-            echo_success
-            RETVAL=0
-        fi
-    else
-        echo -n $"$prog is not running"
-        echo_failure
-        RETVAL=1
-    fi
-
-    echo
-    return $RETVAL
-}
-
-restart() {
-  stop
-  start
-}
-
-condrestart() {
-    [-e /var/lock/subsys/$prog] && restart || :
-}
-
-case "$1" in
-  start)
-  start
-  ;;
-  stop)
-  stop
-  ;;
-  status)
-  status -p %{pid_file} $prog
-  RETVAL=$?
-  ;;
-  restart)
-  restart
-  ;;
-  condrestart|try-restart)
-  condrestart
-  ;;
-   *)
-  echo $"Usage: $0 {start|stop|status|restart|condrestart}"
-  RETVAL=1
-esac
-
-exit $RETVAL
+[Install]
+WantedBy=multi-user.target
 EOF
 
 
@@ -142,7 +73,7 @@ mkdir -p %{buildroot}%{_bindir}
 %{__install} -Dp -m 0755 src/redis-cli %{buildroot}%{_bindir}/redis-cli
 
 %{__install} -Dp -m 0755 redis.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/redis
-%{__install} -Dp -m 0755 redis.sysv %{buildroot}%{_sysconfdir}/init.d/redis
+%{__install} -Dp -m 0755 redis.service %{buildroot}%{_unitdir}/redis.service
 %{__install} -Dp -m 0644 redis.conf %{buildroot}%{_sysconfdir}/redis.conf
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
@@ -153,24 +84,15 @@ mkdir -p %{buildroot}%{_bindir}
 
 %preun
 if [ $1 = 0 ]; then
-    # make sure redis service is not running before uninstalling
-
-    # when the preun section is run, we've got stdin attached.  If we
-    # call stop() in the redis init script, it will pass stdin along to
-    # the redis-cli script; this will cause redis-cli to read an extraneous
-    # argument, and the redis-cli shutdown will fail due to the wrong number
-    # of arguments.  So we do this little bit of magic to reconnect stdin
-    # to the terminal
-    term="/dev/$(ps -p$$ --no-heading | awk '{print $2}')"
-    exec < $term
-
-    /sbin/service redis stop > /dev/null 2>&1 || :
-    /sbin/chkconfig --del redis
+    /usr/sbin/service redis stop > /dev/null 2>&1 || :
+    systemctl disable redis
 fi
 
 %post
-sed -i 's/^daemonize no/daemonize yes/' %{_sysconfdir}/redis.conf
-/sbin/chkconfig --add redis
+#sed -i 's/^daemonize no/daemonize yes/' %{_sysconfdir}/redis.conf
+%service_add_post redis.service
+chkconfig redis on
+/usr/sbin/service redis start
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -181,7 +103,7 @@ sed -i 's/^daemonize no/daemonize yes/' %{_sysconfdir}/redis.conf
 %{_sbindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
-%{_sysconfdir}/init.d/redis
+%{_unitdir}/redis.service
 %config(noreplace) %{_sysconfdir}/redis.conf
 %{_sysconfdir}/logrotate.d/redis
 %dir %attr(0770,redis,redis) %{_localstatedir}/lib/redis
