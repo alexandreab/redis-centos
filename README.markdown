@@ -17,12 +17,6 @@ Perform the following on a build box as root.
     wget http://download.redis.io/releases/redis-2.8.17.tar.gz \
     -O redis-2.8.17.tar.gz ~/rpmbuild/SOURCES/
 
-## Get Necessary System-specific Configs
-
-    git clone git://github.com/causes/redis-centos.git
-    cp redis-centos/conf/redis.conf ~/rpmbuild/SOURCES/
-    cp redis-centos/spec/redis.spec ~/rpmbuild/SPECS/
-
 ## Build the RPM
 
     cd ~/rpmbuild/
@@ -30,10 +24,10 @@ Perform the following on a build box as root.
 
 The resulting RPM will be:
 
-    ~/rpmbuild/RPMS/x86_64/redis-1.3.9-1.x86_64.rpm
+    ~/rpmbuild/RPMS/x86_64/redis-2.8.17-1.x86_64.rpm
 
 ## Credits
 
-Based on the `redis.spec` file from Jason Priebe, found on [Google Code][gc].
+Project forked and updated from redis-centos repository, found on [GitHub][gh].
 
- [gc]: http://groups.google.com/group/redis-db/files
+ [gh]: https://github.com/causes/redis-centos
