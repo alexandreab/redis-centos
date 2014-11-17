@@ -47,8 +47,9 @@ Description=Redis
 
 [Service]
 User=redis
-ExecStart=/usr/sbin/redis-server
-Restart=on-abnormal
+WorkingDirectory=%{_localstatedir}/lib/redis
+ExecStart=/usr/sbin/redis-server %{_sysconfdir}/redis.conf
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
