@@ -89,7 +89,7 @@ if [ $1 = 0 ]; then
 fi
 
 %post
-#sed -i 's/^daemonize no/daemonize yes/' %{_sysconfdir}/redis.conf
+sed -i 's/# bind 127.0.0.1/bind 127.0.0.1/' %{_sysconfdir}/redis.conf
 %service_add_post redis.service
 chkconfig redis on
 /usr/sbin/service redis start
