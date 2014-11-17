@@ -80,13 +80,17 @@ mkdir -p %{buildroot}%{_bindir}
 %{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
 
 %pre
-/usr/sbin/useradd -c 'Redis' -u 499 -s /bin/false -r -d %{_localstatedir}/lib/redis redis 2> /dev/null || :
+/usr/sbin/useradd --system --shell /sbin/nologin --home-dir %{_localstatedir}/lib/redis redis 2> /dev/null || :
 
 %preun
 if [ $1 = 0 ]; then
     /usr/sbin/service redis stop > /dev/null 2>&1 || :
     systemctl disable redis
 fi
+
+%postun
+/usr/sbin/userdel redis 2> /dev/null || :
+/usr/sbin/groupdel redis 2> /dev/null || :
 
 %post
 #sed -i 's/^daemonize no/daemonize yes/' %{_sysconfdir}/redis.conf
