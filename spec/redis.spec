@@ -48,7 +48,7 @@ Description=Redis
 [Service]
 User=redis
 WorkingDirectory=%{_localstatedir}/lib/redis
-ExecStart=/usr/sbin/redis-server %{_sysconfdir}/redis.conf
+ExecStart=/usr/bin/redis-server %{_sysconfdir}/redis.conf
 Restart=on-failure
 
 [Install]
@@ -62,7 +62,7 @@ EOF
 %install
 %{__rm} -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
-%{__install} -Dp -m 0755 src/redis-server %{buildroot}%{_sbindir}/redis-server
+%{__install} -Dp -m 0755 src/redis-server %{buildroot}%{_bindir}/redis-server
 %{__install} -Dp -m 0755 src/redis-benchmark %{buildroot}%{_bindir}/redis-benchmark
 %{__install} -Dp -m 0755 src/redis-cli %{buildroot}%{_bindir}/redis-cli
 
@@ -90,7 +90,7 @@ sed -i 's/# bind 127.0.0.1/bind 127.0.0.1/' %{_sysconfdir}/redis.conf
 
 %files
 %defattr(-,root,root,0755)
-%{_sbindir}/redis-server
+%{_bindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
 %{_unitdir}/redis.service
