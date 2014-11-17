@@ -1,5 +1,3 @@
-%define pid_dir %{_localstatedir}/run/redis
-%define pid_file %{pid_dir}/redis.pid
 
 Summary: redis
 Name: redis
@@ -10,14 +8,10 @@ Group: Applications/Multimedia
 URL: http://redis.io/
 Source0: redis-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-BuildRequires: gcc, make
-Requires(post): /sbin/chkconfig /usr/sbin/useradd
-Requires(preun): /sbin/chkconfig, /sbin/service
-Requires(postun): /sbin/service
+BuildRequires: gcc, make, systemd
+%{?systemd_requires}
+Requires(post): /usr/sbin/useradd
 Provides: redis
-%if 0%{?suse_version} >= 1210
-BuildRequires: systemd
-%endif 
 
 Packager: Alexandre Barbosa <alexandrealmeidabarbosa@gmail.com>
 
@@ -54,8 +48,7 @@ Description=Redis
 [Service]
 User=redis
 ExecStart=/usr/sbin/redis-server
-KillMode=process
-Restart=on-failure
+Restart=on-abnormal
 
 [Install]
 WantedBy=multi-user.target
@@ -77,29 +70,25 @@ mkdir -p %{buildroot}%{_bindir}
 %{__install} -Dp -m 0644 redis.conf %{buildroot}%{_sysconfdir}/redis.conf
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/lib/redis
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
-%{__install} -p -d -m 0755 %{buildroot}%{pid_dir}
 
 %pre
 /usr/sbin/useradd -c 'Redis' -u 499 -s /bin/false -r -d %{_localstatedir}/lib/redis redis 2> /dev/null || :
 
 %preun
-if [ $1 = 0 ]; then
-    /usr/sbin/service redis stop > /dev/null 2>&1 || :
-    systemctl disable redis
-fi
+%systemd_preun redis.service
+
+%postun
+%systemd_postun redis.service
 
 %post
+%systemd_post redis.service
 sed -i 's/# bind 127.0.0.1/bind 127.0.0.1/' %{_sysconfdir}/redis.conf
-%service_add_post redis.service
-chkconfig redis on
-/usr/sbin/service redis start
 
 %clean
 %{__rm} -rf %{buildroot}
 
 %files
-%defattr(-, root, root, 0755)
-%doc deps/lua/doc/*.html
+%defattr(-,root,root,0755)
 %{_sbindir}/redis-server
 %{_bindir}/redis-benchmark
 %{_bindir}/redis-cli
@@ -108,7 +97,6 @@ chkconfig redis on
 %{_sysconfdir}/logrotate.d/redis
 %dir %attr(0770,redis,redis) %{_localstatedir}/lib/redis
 %dir %attr(0755,redis,redis) %{_localstatedir}/log/redis
-%dir %attr(0755,redis,redis) %{_localstatedir}/run/redis
 
 %changelog
 * Mon Nov 10 2014 - update for redis-2.8.17
