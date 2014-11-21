@@ -73,13 +73,17 @@ mkdir -p %{buildroot}%{_bindir}
 %{__install} -p -d -m 0755 %{buildroot}%{_localstatedir}/log/redis
 
 %pre
-/usr/sbin/useradd -c 'Redis' -u 499 -s /bin/false -r -d %{_localstatedir}/lib/redis redis 2> /dev/null || :
+/usr/sbin/useradd --system --shell /sbin/nologin --home-dir %{_localstatedir}/lib/redis redis 2> /dev/null || :
 
 %preun
 %systemd_preun redis.service
 
 %postun
 %systemd_postun redis.service
+
+%postun
+/usr/sbin/userdel redis 2> /dev/null || :
+/usr/sbin/groupdel redis 2> /dev/null || :
 
 %post
 %systemd_post redis.service
